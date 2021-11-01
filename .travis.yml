@@ -1,0 +1,66 @@
+name: CI - Lint / Tests / Deploy
+true:
+- push
+jobs:
+  lint:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+  tests:
+    needs: lint
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        python-version:
+        - 3.5
+        - 3.6
+        - 3.7
+        - 3.8
+        - 3.9
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: "${{ matrix.python-version }}"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pytest
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Integrations Test
+      run: 'python test.py
+
+'
+  deploy:
+    needs: tests
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+    - name: devops-f
+      uses: akhileshns/heroku-deploy@v3.12.12
+      with:
+        heroku_api_key: "${{secrets.HEROKU_API_KEY}}"
+        heroku_app_name: "${{secrets.HEROKU_APP_NAME}}"
+        heroku_email: "${{secrets.HEROKU_USER_EMAIL}}"
+deploy:
+  api_key:
+    secure: O9hNef53hH7yc9It9+bLTPWJAxP1sLOobKDaSP3L+eKgk+wmWRupa9HTzW1MUaMG7cgC/QsW4CHud1NRRi12ZuejlqIR0FGup/awBlBFK1ht1BF/8kv6/mmKTr3cvsIXhGTqatDTBSOELuTyf1iL0cIxAF/p5AgjJXcul8riUqUDIYrPuM/McXMlm9IV2LAFhzM7JZiyPsiYAr4PhvS9N+FQG0RsE71Fvt6C4khLPvoI4GB30oiEF/olfTwy1fP5XS1CjJNaJ5I8CvduPuFOg3nzfq6AThRCe8KV5r5Nss1TFFJd1s2ntNw5izhDxCl1ML6vnTJWw6cXJ87G5IQAwhMJ7MZkDnRg2l2T6OEvYpXsmeHT2dRiYw16F6vIRuYlzOGGXcc50pvhgULyNEx0frq+JFGYQfoyXoe3PcGI15vOV4z9dAqdULqiA61kN9J5E+W7HoFvn20N2AbYiGJx3T8ErC/S7hSR1ryoDjucWvDaA6767V9DXFi/WhsvRYKkbbYP46p2E7Dku71WQOqXHeqel67SBcmSDwSlEDHGp240ZBL3DuQ9KoQX05dwHd6OulzQjgcnpfUDN6+GlD+B1uRrIK+u43vFt2CGwyFxMBct5SIX0/42CuHp3mvfmCl/ZFPuPrDnmSlISIHUB+y126f1galc6uFuFYqS/WZqM1s=
